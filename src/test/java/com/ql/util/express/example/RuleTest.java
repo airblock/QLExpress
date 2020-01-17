@@ -1,24 +1,74 @@
 package com.ql.util.express.example;
 
+import com.alibaba.fastjson.JSONObject;
 import com.ql.util.express.*;
 import com.ql.util.express.instruction.op.OperatorBase;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.lang.builder.ToStringStyle;
 import org.junit.Test;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Created by tianqiao on 17/6/4.
  */
-public class ArgumentTypeMismatchTest {
+public class RuleTest {
     
     
-    private static ArgumentTypeMismatchTest singleton = new ArgumentTypeMismatchTest();
-    
+    private static RuleTest singleton = new RuleTest();
+
+    private Map<String, LimitAndMonitorRule> simpleMap = new HashMap<String, LimitAndMonitorRule>();
+    private Map<String, String> conbinationMap = new HashMap<String, String>();
+
+    public void acceptSimpleRule(String key, String value){
+        JSONObject valueObj = JSONObject.parseObject(value);
+        simpleMap.put(key, LimitAndMonitorRule.parse(valueObj));
+    }
+
+    public void acceptCombinationRule(String key, String value){
+        conbinationMap.put(key, value);
+
+    }
+
     public void functionABC(Long a,Integer b,String c)
     {
         System.out.println(true && false);
     }
-    
+
+    public Long functionSimpleRule(String key)
+    {
+        return simpleMap.get(key).getTimes();
+    }
+
+    @Test
+    public void testrule1() throws Exception {
+        String simpleRuleKey = "repost";
+        String simpleRuleValue = "{\"parameters\":[\"log_user_id\"],\"periodLength\":1,\"timeUnit\":\"MINUTES\",\"times\":50, \"uri\":\"\"}";
+        acceptSimpleRule(simpleRuleKey, simpleRuleValue);
+        ExpressRunner runner = new ExpressRunner();
+//        runner.addFunctionOfServiceMethod("rule", this,"functionSimpleRule",new Class[]{String.class},null);
+        String exp = "repost>10";
+        IExpressContext<String, Object> context = new DefaultContext<String, Object>();
+        context.put("repost", 100);
+        Object execute = runner.execute(exp, context, null, false, false);
+        System.out.println(execute);
+    }
+
+    @Test
+    public void testrule() throws Exception {
+        String simpleRuleKey = "repost";
+        String simpleRuleValue = "{\"parameters\":[\"log_user_id\"],\"periodLength\":1,\"timeUnit\":\"MINUTES\",\"times\":50, \"uri\":\"\"}";
+        acceptSimpleRule(simpleRuleKey, simpleRuleValue);
+        ExpressRunner runner = new ExpressRunner();
+        runner.addFunctionOfServiceMethod("rule", this,"functionSimpleRule",new Class[]{String.class},null);
+        String exp = "rule(\"repost\")>10";
+        IExpressContext<String, Object> context = new DefaultContext<String, Object>();
+//        context.put("key",simpleRuleKey);
+        Object execute = runner.execute(exp, context, null, false, false);
+        System.out.println(execute);
+    }
+
     @Test
     public void test1() throws Exception {
         ExpressRunner runner = new ExpressRunner();
@@ -30,7 +80,7 @@ public class ArgumentTypeMismatchTest {
         context.put("c","3");
         runner.execute(exp, context, null, false, false);
     }
-    
+
     @Test
     public void test2() throws Exception {
         ExpressRunner runner = new ExpressRunner();
